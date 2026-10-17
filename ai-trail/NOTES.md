@@ -1,7 +1,5 @@
 # AI trail
 
-> **DRAFT: the two sections marked "yours to write" are deliberately empty. They are about what you did and judged, and only you can say that honestly. Fill them in before sending, and delete this banner.**
-
 ## Setup
 - Tool: Claude, in a project containing the challenge brief (`BNamericas-Technical-Challenge.pdf`).
 - Context given before any code: the brief, then the starter repo's `README.md` and `upstream/README.md`, `upstream/records_api/main.py`, `seed.py` and its tests, all read before designing.
