@@ -1,65 +1,54 @@
-# Project editor challenge
+# Project editor
 
-We build internal tools for a research team that keeps thousands of infrastructure project records
-accurate. Those records live in an **upstream records API** that another team owns. You cannot change
-it. Your job is the layer in front of it.
+A small editor for infrastructure project records, in front of an upstream records API that this repo does not own.
 
-## Start here
+- `upstream/`: the provided records API. **Untouched.**
+- `backend/`: FastAPI. Lists projects, returns one, saves edits with safe concurrent editing.
+- `frontend/`: React + MUI. A project list and an edit form for the core fields and key dates.
+- `DECISIONS.md`: what I chose, what I cut, what breaks first.
 
-1. Click **Use this template** on this repository to create your own copy in your GitHub account.
-   Public or private is your choice; if private, invite `juandiegoantezana-zaga`.
-2. Run the upstream API locally. Instructions, and its known habits, are in
-   [`upstream/README.md`](upstream/README.md). It comes seeded with about 30 fictional projects.
+The browser only calls the backend (`/api`). It never calls the upstream.
 
-## What to build (about an hour, likely less with good tooling)
+## Run it
 
-Use AI the way you would on a real task here, not the way you would for a quick question. We are as
-interested in how you prepared your tooling for the job as in what you asked it to do.
+You need [uv](https://docs.astral.sh/uv/) and Node. Three terminals:
 
-| Piece | What it needs to do |
-|---|---|
-| **A backend (Python, FastAPI)** | Sits between the browser and the upstream API. Lists projects, returns one project, saves edits to one project |
-| **A frontend (React + MUI)** | A project list, and an edit form for the project's core fields and its key dates |
-| **Safe concurrent editing** | Two people can edit the same project at the same time. If they change different fields, both changes must survive. If they change the same field, neither may silently win: the person saving second decides. The upstream gives you no help with this. Decide what "the same field" means for the key dates, and say why |
+```sh
+# 1. the upstream (port 8081; resets its data on every restart)
+cd upstream && uv run upstream
 
-One hard rule: **the browser never calls the upstream API directly.** Everything goes through your
-backend.
+# 2. the backend (port 8000)
+cd backend && uv sync && uv run backend
 
-**Where this will run.** In production your backend runs as three instances behind a load balancer,
-and a nightly import job writes to the upstream directly, without going through your backend. You do
-not need to build either. Your design does need to survive both.
+# 3. the frontend dev server (port 5173, proxies /api to the backend)
+cd frontend && npm install && npm run dev
+```
 
-**You will extend this code live in the interview.** Leave it in the state you would want to work in.
+Open http://localhost:5173. For a single process instead of the dev server, run `npm run build` in `frontend/` and open http://localhost:8000: the backend serves the built files.
 
-The upstream has some awkward habits. They are in its README. Dealing with them is part of the task.
-Do not modify anything in `upstream/`.
+Try the concurrency rules: open the same project in two tabs, change different fields and save both (both survive), then change the same field in both (the second save asks you to decide).
 
-## What we are not asking for
+The upstream's faults can be switched off with `UPSTREAM_SLOW_RATE=0 UPSTREAM_TIMEOUT_RATE=0`; leave them on to see the backend cope.
 
-This is deliberately more than fits in the time. What you cut, and why, is part of what we read. We do
-not score UI polish, test coverage percentage, formatting, or how much you produced. Something small
-that works and is honestly described beats something large that is oversold.
+Backend settings: `UPSTREAM_URL` (default `http://127.0.0.1:8081`), `UPSTREAM_API_KEY` (default `local-dev-key`), `PORT` (default `8000`).
 
-## What to send back
+## Tests
 
-| Deliverable | Notes |
-|---|---|
-| **The link to your repo** | With everything committed. Replace this README with your own: what runs, what does not, and how to start it |
-| **`DECISIONS.md`** (one page) | What you chose, what you cut and why, and what would break first if this had 50 editors |
-| **Your AI trail** | Whatever your tooling left behind, committed or attached: how you set it up, what you told it, what it produced. Plus a short note: how you approached the task before any code was written, where the tool carried the work, where you overrode it, and what you checked by hand |
+```sh
+cd backend && uv run pytest
+```
 
-Please return it within a week of receiving this brief.
+They run the backend against the real upstream app in process, with its `504`s scripted so each case is deterministic.
 
-## The interview
+## What runs, and what does not
 
-We use the same codebase, running on your machine, with you sharing your screen. The first part is a
-walkthrough of your decisions and of how you work with AI. In the second part we extend the code
-together, live.
+Runs: list, open, edit and save of name, country, sector, stage and key dates; per-field merge of concurrent edits; explicit conflict resolution; recovery from the upstream's `504`s and slow reads.
 
-**Come with the environment you actually work in**, configured the way you like it, including anything
-you have added to your AI tooling over time. Requirements will change during the session, and we want
-you to respond the way you would at work, with whatever you would normally reach for. Nothing is off
-limits. We want to see how you really work.
+Does not: editing linked companies (kept untouched), authentication, who-changed-what history, a lock shared between backend instances. The UI type-checks and builds but has no automated tests and has not been click-tested in a browser. See `DECISIONS.md` for the reasoning and for what would break first with 50 editors.
+
+## AI trail
+
+See `ai-trail/NOTES.md` and `CLAUDE.md`.
 
 ---
 
